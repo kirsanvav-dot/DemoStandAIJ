@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
-import { scenarios, type Scenario } from '../data/scenarios'
+import { useEffect, useState } from 'react'
+import { getDataProvider } from '../data'
+import type { Scenario } from '../data/scenarios'
 import { cx } from '../lib/cx'
 import { useDemoStore } from '../store/demoStore'
 import { IconAlert, IconArrow, IconBack, IconCheck, IconClock, IconRadio } from './Icons'
@@ -77,6 +79,16 @@ export function AlertsScreen() {
   const setScreen = useDemoStore((state) => state.setScreen)
   const selectScenario = useDemoStore((state) => state.selectScenario)
   const resolved = useDemoStore((state) => state.resolved)
+  const provider = getDataProvider()
+  const [alerts, setAlerts] = useState<Scenario[]>(() => provider.getAlerts())
+
+  useEffect(
+    () =>
+      provider.subscribeNewAlerts((alert) => {
+        setAlerts((current) => (current.some((item) => item.id === alert.id) ? current : [...current, alert]))
+      }),
+    [provider],
+  )
 
   return (
     <div className="radial-glow flex min-h-screen flex-col">
@@ -95,7 +107,7 @@ export function AlertsScreen() {
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-ink-50">Входящие алерты</h1>
             <p className="font-mono text-xs text-ink-300">
-              {scenarios.length} активных · {resolved.length} разобрано
+              {alerts.length} активных · {resolved.length} разобрано
             </p>
           </div>
         </div>
@@ -106,7 +118,7 @@ export function AlertsScreen() {
       </header>
       <div className="flex-1 overflow-auto px-8 py-6">
         <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-4 md:grid-cols-2">
-          {scenarios.map((scenario, index) => (
+          {alerts.map((scenario, index) => (
             <AlertCard
               key={scenario.id}
               scenario={scenario}

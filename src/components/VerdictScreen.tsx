@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { getDataProvider } from '../data'
 import type { RiskLevel, VerdictStatus } from '../data/scenarios'
 import { cx } from '../lib/cx'
 import { useDemoStore } from '../store/demoStore'
@@ -60,14 +61,16 @@ export function VerdictScreen() {
     return () => window.clearInterval(timer)
   }, [reset])
 
-  if (!selected) {
+  const verdict = selected ? getDataProvider().getVerdict(selected.id) : null
+
+  if (!selected || !verdict) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-300">Сценарий не выбран</div>
     )
   }
 
-  const status = STATUS[selected.verdict.status]
-  const risk = RISK[selected.verdict.riskLevel]
+  const status = STATUS[verdict.status]
+  const risk = RISK[verdict.riskLevel]
   const StatusIcon = status.icon
 
   return (
@@ -86,7 +89,7 @@ export function VerdictScreen() {
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-ink-50">Вердикт</h1>
-            <p className="font-mono text-xs text-ink-300">{selected.title}</p>
+            <p className="font-mono text-xs text-ink-300">{verdict.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 font-mono text-xs text-ink-300">
@@ -117,7 +120,7 @@ export function VerdictScreen() {
 
             <div className="px-6 py-6">
               <p className="mb-2 font-mono text-xs text-ink-400">Причина</p>
-              <p className="text-lg leading-relaxed text-ink-100">{selected.verdict.reason}</p>
+              <p className="text-lg leading-relaxed text-ink-100">{verdict.reason}</p>
               <button
                 type="button"
                 onClick={() => setOpen((value) => !value)}
@@ -128,7 +131,7 @@ export function VerdictScreen() {
               </button>
               <motion.div initial={false} animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }} className="overflow-hidden">
                 <code className="mt-3 block rounded-lg border border-ink-700/40 bg-ink-900/60 p-4 font-mono text-xs leading-relaxed text-ink-300">
-                  {selected.verdict.technicalDetail}
+                  {verdict.technicalDetail}
                 </code>
               </motion.div>
             </div>
@@ -140,7 +143,7 @@ export function VerdictScreen() {
                 </div>
                 <div>
                   <p className="mb-1 font-mono text-xs text-ink-400">Рекомендуемое действие</p>
-                  <p className="text-sm text-ink-100">{selected.verdict.recommendation}</p>
+                  <p className="text-sm text-ink-100">{verdict.recommendation}</p>
                 </div>
               </div>
             </div>
@@ -157,7 +160,7 @@ export function VerdictScreen() {
                       риск: {risk.label.toLowerCase()}
                     </span>
                   </div>
-                  <p className="text-sm text-ink-100">{selected.verdict.scoringImpact}</p>
+                  <p className="text-sm text-ink-100">{verdict.scoringImpact}</p>
                 </div>
               </div>
             </div>

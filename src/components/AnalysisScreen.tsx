@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { AGENTS, SOURCES, type AgentId, type AgentStatus, type Scenario } from '../data/scenarios'
+import { useEffect, useRef, useState } from 'react'
+import { getDataProvider } from '../data'
+import type { AgentId, AgentOutput, AgentStatus } from '../data/scenarios'
 import { cx } from '../lib/cx'
 import { useDemoStore } from '../store/demoStore'
 import {
@@ -30,6 +31,7 @@ const ICONS: Record<AgentId, typeof IconFile> = {
 }
 
 const STEPS = ['Эксперт', 'Статистика', 'Детектив', 'Аналитик']
+const AGENT_COUNT = 4
 
 function Stepper({ step }: { step: number }) {
   return (
@@ -61,26 +63,56 @@ export function AnalysisScreen() {
   const markResolved = useDemoStore((state) => state.markResolved)
   const [step, setStep] = useState(-1)
   const [openId, setOpenId] = useState<AgentId | null>(null)
+  const [liveMode, setLiveMode] = useState(false)
+  const [streamText, setStreamText] = useState('')
+  const [streaming, setStreaming] = useState(false)
+  const liveRef = useRef(liveMode)
+  liveRef.current = liveMode
+  const investigation = selected ? getDataProvider().getInvestigation(selected.id) : null
 
   useEffect(() => {
-    if (!selected) return
+    if (!investigation) return
     setStep(-1)
+    setStreamText('')
+    setStreaming(false)
     const timers: number[] = []
-    timers.push(window.setTimeout(() => setStep(0), 500))
-    AGENTS.forEach((_, index) => {
+    let stopStream = () => {}
+    for (let index = 0; index < AGENT_COUNT; index += 1) {
       timers.push(window.setTimeout(() => setStep(index), 500 + index * BEAT))
-    })
-    timers.push(window.setTimeout(() => setStep(AGENTS.length), 500 + AGENTS.length * BEAT))
-    return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [selected])
+    }
+    timers.push(
+      window.setTimeout(() => {
+        const summary = investigation.agents.find((agent) => agent.id === 'analyst')?.output.summary ?? ''
+        if (!liveRef.current) {
+          timers.push(window.setTimeout(() => setStep(AGENT_COUNT), BEAT))
+          return
+        }
+        setStreaming(true)
+        setStreamText('')
+        let acc = ''
+        stopStream = getDataProvider().getLiveAnalysis(investigation.id, (token) => {
+          acc += token
+          setStreamText(acc)
+          if (acc.length >= summary.length) {
+            setStreaming(false)
+            setStep(AGENT_COUNT)
+          }
+        })
+      }, 500 + 3 * BEAT),
+    )
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+      stopStream()
+    }
+  }, [investigation?.id])
 
-  if (!selected) {
+  if (!selected || !investigation) {
     return (
       <div className="flex min-h-screen items-center justify-center text-ink-300">Сценарий не выбран</div>
     )
   }
 
-  const done = step >= AGENTS.length
+  const done = step >= AGENT_COUNT
 
   return (
     <div className="radial-glow flex min-h-screen flex-col">
@@ -95,17 +127,30 @@ export function AnalysisScreen() {
           </button>
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-ink-50">Разбор алерта</h1>
-            <p className="font-mono text-xs text-ink-300">{selected.title}</p>
+            <p className="font-mono text-xs text-ink-300">{investigation.title}</p>
           </div>
         </div>
-        <Stepper step={step} />
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            aria-pressed={liveMode}
+            onClick={() => setLiveMode((value) => !value)}
+            className={cx(
+              'min-h-10 rounded-lg border px-3 font-mono text-xs transition-colors',
+              liveMode ? 'border-accent/50 bg-accent/15 text-accent' : 'border-ink-600/40 bg-ink-800 text-ink-300',
+            )}
+          >
+            Живой режим
+          </button>
+          <Stepper step={step} />
+        </div>
       </header>
 
       <div className="flex-1 overflow-auto px-8 py-6">
         <div className="relative mx-auto max-w-[1300px]">
           <LinkLayer step={step} />
           <div className="relative z-10 mb-12 flex justify-between px-[5%]">
-            {SOURCES.map((source) => {
+            {investigation.sources.map((source) => {
               const agentIndex = source.id === 'data_contracts' ? 0 : source.id === 'attr_links' ? 1 : 2
               const active = step === agentIndex
               return (
@@ -132,18 +177,20 @@ export function AnalysisScreen() {
           </div>
 
           <div className="relative z-10 mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {AGENTS.map((agent, index) => (
+            {investigation.agents.map((agent, index) => (
               <AgentCard
                 key={agent.id}
-                scenario={selected}
                 index={index}
                 label={agent.label}
                 description={agent.description}
                 agentId={agent.id}
+                output={agent.output}
                 active={step === index}
                 finished={step > index}
                 expanded={openId === agent.id}
                 onToggle={() => setOpenId((current) => (current === agent.id ? null : agent.id))}
+                streaming={agent.id === 'analyst' && streaming}
+                streamText={agent.id === 'analyst' && (streaming || streamText.length > 0) ? streamText : null}
               />
             ))}
           </div>
@@ -158,7 +205,7 @@ export function AnalysisScreen() {
                 <button
                   type="button"
                   onClick={() => {
-                    markResolved(selected.id)
+                    markResolved(investigation.id)
                     setScreen('verdict')
                   }}
                   className="flex items-center gap-2.5 rounded-xl border border-accent/50 bg-accent/15 px-8 py-3.5 text-base font-medium text-accent transition-colors hover:bg-accent/25"
@@ -213,30 +260,34 @@ function LinkLayer({ step }: { step: number }) {
 }
 
 function AgentCard({
-  scenario,
   index,
   label,
   description,
   agentId,
+  output,
   active,
   finished,
   expanded,
   onToggle,
+  streaming,
+  streamText,
 }: {
-  scenario: Scenario
   index: number
   label: string
   description: string
   agentId: AgentId
+  output: AgentOutput
   active: boolean
   finished: boolean
   expanded: boolean
   onToggle: () => void
+  streaming: boolean
+  streamText: string | null
 }) {
   const Icon = ICONS[agentId]
-  const output = scenario.agentOutputs[agentId]
   const tone = STATUS[output.status]
   const visible = active || finished
+  const shownText = streamText !== null ? streamText : output.summary
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -266,26 +317,35 @@ function AgentCard({
         </div>
         <div>
           <h3 className="text-sm font-semibold text-ink-100">{label}</h3>
-          <p className="font-mono text-[10px] text-ink-400">agent #{index + 1}</p>
+          <p className="font-mono text-[10px] text-ink-400">
+            {streaming ? 'живой вызов ИИ' : `agent #${index + 1}`}
+          </p>
         </div>
       </div>
       <p className="mb-3 min-h-8 text-xs leading-relaxed text-ink-300">{description}</p>
       <AnimatePresence>
         {visible && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden">
-            <span className={cx('mb-2 inline-block rounded border px-2 py-0.5 font-mono text-[10px] font-semibold', tone.color, tone.bg, tone.border)}>
-              {tone.label}
-            </span>
-            <p className="text-xs leading-relaxed text-ink-100">{output.summary}</p>
-            <button
-              type="button"
-              onClick={onToggle}
-              className="mt-2 flex min-h-10 items-center gap-1 font-mono text-[10px] text-accent/70 transition-colors hover:text-accent"
-            >
-              <IconChevron className="h-3 w-3" down={expanded} />
-              {expanded ? 'скрыть детали' : 'техническая деталь'}
-            </button>
-            {expanded && (
+            {!streaming && (
+              <span className={cx('mb-2 inline-block rounded border px-2 py-0.5 font-mono text-[10px] font-semibold', tone.color, tone.bg, tone.border)}>
+                {tone.label}
+              </span>
+            )}
+            <p className="text-xs leading-relaxed text-ink-100">
+              {shownText}
+              {streaming && <span className="ml-0.5 inline-block h-3 w-1.5 translate-y-0.5 animate-pulse bg-accent" />}
+            </p>
+            {!streaming && (
+              <button
+                type="button"
+                onClick={onToggle}
+                className="mt-2 flex min-h-10 items-center gap-1 font-mono text-[10px] text-accent/70 transition-colors hover:text-accent"
+              >
+                <IconChevron className="h-3 w-3" down={expanded} />
+                {expanded ? 'скрыть детали' : 'техническая деталь'}
+              </button>
+            )}
+            {expanded && !streaming && (
               <code className="mt-2 block rounded border border-ink-700/40 bg-ink-900/60 p-2 font-mono text-[10px] leading-relaxed text-ink-300">
                 {output.detail}
               </code>

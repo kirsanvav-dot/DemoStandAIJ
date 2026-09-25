@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { STAGES, scenarios, stageIndex, type Scenario, type StageDef } from '../data/scenarios'
+import { useEffect, useRef, useState } from 'react'
+import { getDataProvider, type PipelineEvent } from '../data'
+import type { Scenario, StageDef } from '../data/scenarios'
 import { cx } from '../lib/cx'
 import { useDemoStore } from '../store/demoStore'
 import {
@@ -15,14 +16,14 @@ import {
   IconShield,
 } from './Icons'
 
-const STAGE_MS = 700
-const PAUSE_MS = 2500
+type RunState = PipelineEvent
 
-type RunState = {
-  type: 'clean' | 'dirty'
-  scenario?: Scenario
-  activeStage: number
-  phase: 'flowing' | 'alerting' | 'done'
+const INITIAL_RUN: RunState = {
+  cycle: 0,
+  type: 'clean',
+  scenario: null,
+  activeStage: -1,
+  phase: 'flowing',
 }
 
 const STAGE_ICONS = [IconInbox, IconShield, IconLayers, IconGrid, IconScale, IconFlag]
@@ -222,59 +223,26 @@ function AlertPill({ scenario }: { scenario: Scenario }) {
 
 export function FlowScreen() {
   const setScreen = useDemoStore((state) => state.setScreen)
-  const [run, setRun] = useState<RunState>({ type: 'clean', activeStage: -1, phase: 'flowing' })
-  const [cycle, setCycle] = useState(0)
-  const timers = useRef<number[]>([])
+  const provider = getDataProvider()
+  const stages = provider.getPipelineStages()
+  const [run, setRun] = useState<RunState>(INITIAL_RUN)
+  const [operatorOpen, setOperatorOpen] = useState(false)
+  const holdTimer = useRef<number | null>(null)
 
-  const clearTimers = useCallback(() => {
-    timers.current.forEach((timer) => window.clearTimeout(timer))
-    timers.current = []
-  }, [])
+  useEffect(() => provider.subscribePipelineEvents(setRun), [provider])
 
-  const play = useCallback(
-    (type: 'clean' | 'dirty', scenario?: Scenario) => {
-      clearTimers()
-      setRun({ type, scenario, activeStage: -1, phase: 'flowing' })
-      STAGES.forEach((_, index) => {
-        const timer = window.setTimeout(() => {
-          setRun((current) => ({ ...current, activeStage: index }))
-        }, index * STAGE_MS)
-        timers.current.push(timer)
-      })
-      const after = STAGES.length * STAGE_MS
-      const timer = window.setTimeout(() => {
-        setRun((current) => ({ ...current, phase: type === 'dirty' ? 'alerting' : 'done' }))
-      }, after + (type === 'dirty' ? 400 : 200))
-      timers.current.push(timer)
-    },
-    [clearTimers],
-  )
+  const brokenIdx =
+    run.type === 'dirty' && run.scenario
+      ? stages.findIndex((stage) => stage.id === run.scenario?.brokenStage)
+      : -1
 
-  useEffect(() => {
-    const queue: Array<{ type: 'clean' | 'dirty'; scenario?: Scenario }> = []
-    scenarios.forEach((scenario) => {
-      queue.push({ type: 'clean' })
-      queue.push({ type: 'dirty', scenario })
-    })
-    let index = 0
-    const tick = () => {
-      const next = queue[index % queue.length]
-      play(next.type, next.scenario)
-      setCycle((value) => value + 1)
-      index += 1
-    }
-    tick()
-    const interval = window.setInterval(tick, STAGE_MS * STAGES.length + PAUSE_MS)
-    return () => {
-      window.clearInterval(interval)
-      clearTimers()
-    }
-  }, [play, clearTimers])
-
-  const brokenIdx = run.type === 'dirty' && run.scenario ? stageIndex(run.scenario.brokenStage) : -1
+  const cancelHold = () => {
+    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current)
+    holdTimer.current = null
+  }
 
   return (
-    <div className="radial-glow flex min-h-screen flex-col">
+    <div className="radial-glow relative flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b border-ink-700/50 px-8 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-accent/30 bg-accent/10">
@@ -288,9 +256,12 @@ export function FlowScreen() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 font-mono text-xs text-ink-300">
-            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-ok" />
-            <span>Система активна</span>
+          <div className="flex items-center gap-3 font-mono text-xs text-ink-300">
+            <span className="text-[10px] tracking-wide text-ink-400/70">{provider.modeLabel}</span>
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse-soft rounded-full bg-ok" />
+              <span>Система активна</span>
+            </span>
           </div>
           <button
             type="button"
@@ -307,10 +278,10 @@ export function FlowScreen() {
         <RunCaption run={run} />
         <div className="relative mt-8 w-full max-w-[1400px]">
           <div className="flex w-full items-stretch">
-            {STAGES.map((stage, index) => (
+            {stages.map((stage, index) => (
               <div key={stage.id} className="flex min-w-0 flex-1 items-center">
                 <StageNode stage={stage} index={index} run={run} brokenIdx={brokenIdx} />
-                {index < STAGES.length - 1 && (
+                {index < stages.length - 1 && (
                   <Connector
                     broken={run.type === 'dirty' && index >= brokenIdx && brokenIdx !== -1 && run.activeStage > index}
                     passed={run.activeStage > index && !(run.type === 'dirty' && index >= brokenIdx && brokenIdx !== -1)}
@@ -323,9 +294,9 @@ export function FlowScreen() {
         <div className="mt-12 flex h-32 w-full max-w-[1400px] items-center justify-center">
           <AnimatePresence mode="wait">
             {run.phase === 'alerting' && run.scenario ? (
-              <AlertPill key={`alert-${cycle}`} scenario={run.scenario} />
+              <AlertPill key={`alert-${run.cycle}`} scenario={run.scenario} />
             ) : run.activeStage >= 0 ? (
-              <EventPill key={`event-${cycle}`} run={run} brokenIdx={brokenIdx} />
+              <EventPill key={`event-${run.cycle}`} run={run} brokenIdx={brokenIdx} />
             ) : null}
           </AnimatePresence>
         </div>
@@ -345,9 +316,67 @@ export function FlowScreen() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-ink-400">cycle</span>
-          <span className="text-accent">#{cycle}</span>
+          <span className="text-accent">#{run.cycle}</span>
         </div>
       </footer>
+      <div
+        className="absolute bottom-0 left-0 z-30 h-16 w-16"
+        onPointerDown={() => {
+          cancelHold()
+          holdTimer.current = window.setTimeout(() => setOperatorOpen(true), 2000)
+        }}
+        onPointerUp={cancelHold}
+        onPointerLeave={cancelHold}
+        onPointerCancel={cancelHold}
+      />
+      {operatorOpen && (
+        <OperatorPanel
+          alerts={provider.getAlerts()}
+          onClose={() => setOperatorOpen(false)}
+          onPlay={(id) => {
+            provider.playDirtyRun(id)
+            setOperatorOpen(false)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function OperatorPanel({
+  alerts,
+  onClose,
+  onPlay,
+}: {
+  alerts: Scenario[]
+  onClose: () => void
+  onPlay: (id: string) => void
+}) {
+  return (
+    <>
+      <button type="button" aria-label="закрыть" className="fixed inset-0 z-40 bg-transparent" onClick={onClose} />
+      <div className="fixed bottom-6 left-6 z-50 w-80 rounded-xl border border-ink-600/40 bg-ink-850 p-4 shadow-lg">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-mono text-[11px] tracking-wide text-ink-300">Сценарии</p>
+          <button type="button" onClick={onClose} className="min-h-10 px-2 font-mono text-xs text-ink-300">
+            закрыть
+          </button>
+        </div>
+        <ul className="space-y-2">
+          {alerts.map((alert) => (
+            <li key={alert.id} className="flex items-center justify-between gap-3">
+              <span className="text-sm leading-snug text-ink-100">{alert.title}</span>
+              <button
+                type="button"
+                onClick={() => onPlay(alert.id)}
+                className="shrink-0 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 font-mono text-xs text-accent"
+              >
+                запустить
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   )
 }
