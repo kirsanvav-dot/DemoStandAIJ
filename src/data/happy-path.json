@@ -1,0 +1,214 @@
+{
+  "$comment": "Сквозной кейс (хэппи-пасс) — единый источник данных для всех экранов стенда. Структура описана в docs/data-contract.md. Чтобы подставить реальный инцидент, меняйте только этот файл.",
+  "queueRow": {
+    "eventId": "DEMO-204817",
+    "time": "14:52:18",
+    "client": "ООО «Северный контур»",
+    "inn": "7700001000",
+    "counterparty": "ООО «Орбита решений»",
+    "counterpartyNote": "Получатель",
+    "amount": "1 250 000,00 ₽",
+    "operation": "Перевод · RUB",
+    "rule": "DEMO_RULE_014",
+    "ruleName": "Новое устройство",
+    "channel": "Веб",
+    "city": "Москва",
+    "status": "new",
+    "caseId": "c-device",
+    "flag": "пустой device_id"
+  },
+  "scenario": {
+    "id": "device_missing",
+    "title": "Пропал идентификатор устройства",
+    "attributeName": "device_id (device fingerprint)",
+    "source": "Энричер «Устройство» → fingerprint-service",
+    "brokenStage": "enrichment",
+    "downstream": "Не строится профиль устройства. Правило «Новое устройство» считает пустой device_id новым устройством и создаёт ложные обращения.",
+    "channel": "Веб-канал",
+    "timestamp": "14:52:18",
+    "severity": 3,
+    "missingChip": "device_id",
+    "agentOutputs": {
+      "expert": {
+        "status": "confirmed",
+        "summary": "Device_id обязателен по контракту web_channel v1.8. Без него невозможно сопоставить сессии.",
+        "detail": "DataContract: channel=web, version=1.8, field=device_id, constraint=required, source=enricher.device"
+      },
+      "statistic": {
+        "status": "confirmed",
+        "summary": "Атрибут device_id связан с 6 зависимыми расчётами и 5 правилами. Критичность — критическая.",
+        "detail": "Справочник связей: device_id → device_profile, device_id → session_link, device_id → DEMO_RULE_014, device_id → velocity_by_device"
+      },
+      "detective": {
+        "status": "confirmed",
+        "summary": "До 13:47 device_id приходил в 99,6% событий веб-канала, после — в 62%. Пропуски массовые и начались одномоментно.",
+        "detail": "ПКБ: channel=web, fill_rate_before=99.6%, fill_rate_after=62%, break=13:47, client_id=****0387"
+      },
+      "analyst": {
+        "status": "confirmed",
+        "summary": "Поле обязательное и критичное, пропуски массовые и начались резко. Это не поведение клиентов, а сбой в цепочке обработки — нужен поиск первопричины.",
+        "detail": "Синтез: contract=required, criticality=critical, history=mass_gap_since_13:47, verdict=root_cause"
+      }
+    },
+    "verdict": {
+      "status": "confirmed",
+      "reason": "Энричер «Устройство» не успевает получить device_id от fingerprint-service. Профиль устройства не строится.",
+      "technicalDetail": "Оркестратор обрывает вызов fingerprint-service по таймауту 800 мс. Контракт web v1.8 требует device_id как required-поле.",
+      "recommendation": "Запустить RCA и согласовать с владельцем модуля условия обработки",
+      "scoringImpact": "Критический риск: 5 правил и 6 расчётов затронуты",
+      "riskLevel": "high"
+    }
+  },
+  "journey": {
+    "id": "c-device",
+    "eventId": "DEMO-204817",
+    "scenarioId": "device_missing",
+    "attribute": "device_id",
+    "assistant": {
+      "summary": "Правило «Новое устройство» сработало потому, что в событии пустой device_id, а не потому, что устройство новое. За последние 40 минут так же сработали ещё 36 обращений веб-канала. Похоже на дефект данных, а не на поведение клиента.",
+      "facts": ["device_id: пусто", "DEMO_RULE_014 сработало на пустом поле", "37 похожих обращений за 40 мин", "канал: Веб"],
+      "recommendation": "Разобрать дефект данных",
+      "action": "defect"
+    },
+    "analysis": {
+      "kind": "needs_rca",
+      "headline": "Поле обязательное, но массово не доходит",
+      "text": "Пропуски начались одномоментно в 13:47 и затрагивают весь веб-канал. Это сбой в цепочке обработки — нужно найти, где именно теряется device_id."
+    },
+    "chat": {
+      "agent": "Агент RCA",
+      "prompt": "Почему в DEMO-204817 не пришёл device_id? Найди первопричину",
+      "ack": "Принял. Запускаю сценарий RCA по событию DEMO-204817 — пройду по трейсам оркестратора, метрикам модулей, журналу релизов и потоку событий. Ход расследования открою рядом."
+    },
+    "rca": {
+      "steps": [
+        {
+          "source": "Трейсы оркестратора",
+          "title": "Трассировка события",
+          "finding": "Событие прошло L1-валидацию. Вызов энричера «Устройство» оркестратор оборвал по таймауту 800 мс — device_id записан пустым.",
+          "detail": "trace: orchestrator → enricher.device → fingerprint-service · status=TIMEOUT · waited=800ms"
+        },
+        {
+          "source": "Метрики модулей (L5)",
+          "title": "Задержка модуля",
+          "finding": "Время ответа fingerprint-service (p99) выросло с 420 мс до 1 840 мс в 13:47. Таймаут оркестратора — 800 мс: 38% вызовов обрываются.",
+          "detail": "metric: fingerprint_service_latency_p99 · timeout: orchestrator.enricher.device.timeout_ms=800",
+          "chart": true
+        },
+        {
+          "source": "Журнал релизов",
+          "title": "Что изменилось",
+          "finding": "13:45 — релиз fingerprint-service v3.12 (новый алгоритм расчёта отпечатка). Совпадает с началом деградации.",
+          "detail": "release: fingerprint-service 3.11.4 → 3.12.0 · 13:45 · owner: команда клиентских SDK"
+        },
+        {
+          "source": "ПКБ / поток событий",
+          "title": "Масштаб",
+          "finding": "С 13:47 затронуто 2 140 событий веб-канала. Мобильный канал не затронут — у него свой SDK.",
+          "detail": "ПКБ: channel=web, device_id=null, window=13:47–14:52, events=2140; channel=mobile: 0"
+        }
+      ],
+      "latency": [
+        { "t": "13:00", "ms": 410 },
+        { "t": "13:10", "ms": 425 },
+        { "t": "13:20", "ms": 405 },
+        { "t": "13:30", "ms": 430 },
+        { "t": "13:40", "ms": 420 },
+        { "t": "13:50", "ms": 1760 },
+        { "t": "14:00", "ms": 1840 },
+        { "t": "14:10", "ms": 1800 },
+        { "t": "14:20", "ms": 1820 },
+        { "t": "14:30", "ms": 1790 },
+        { "t": "14:40", "ms": 1830 },
+        { "t": "14:50", "ms": 1810 }
+      ],
+      "timeoutMs": 800,
+      "conclusion": "Первопричина — таймаут на стороне модуля fingerprint-service после релиза v3.12. Модуль отвечает, но дольше, чем ждёт оркестратор, — поэтому device_id приходит пустым."
+    },
+    "conditions": {
+      "changes": [
+        {
+          "key": "orchestrator.enricher.device.timeout_ms",
+          "from": "800",
+          "to": "1500",
+          "why": "После релиза модуль отвечает медленнее; 1 500 мс покрывают основную массу ответов"
+        },
+        {
+          "key": "orchestrator.enricher.device.retry",
+          "from": "0",
+          "to": "1 (через 200 мс)",
+          "why": "Единичные долгие ответы добирает повтор"
+        },
+        {
+          "key": "enricher.device.fallback",
+          "from": "нет",
+          "to": "device_hash, device_id_source=fallback",
+          "why": "Событие не уходит в скоринг с пустым device_id"
+        },
+        {
+          "key": "monitoring.L5.fingerprint_p99",
+          "from": "нет",
+          "to": "алерт при > 1 000 мс 5 мин",
+          "why": "Следующую деградацию увидим до того, как она дойдёт до правил"
+        }
+      ],
+      "forecast": "Доля пустых device_id: 38% → менее 1% (оценка по трейсам за последний час)",
+      "note": "Условия обработки согласует владелец модуля. Правило DEMO_RULE_014 нужно поправить отдельно: оно считало пустой device_id новым устройством."
+    },
+    "rule": {
+      "id": "DEMO_RULE_014",
+      "name": "Новое устройство",
+      "description": {
+        "whyWrong": "Правило считало пустой device_id новым устройством. С 13:47 энричер «Устройство» отдаёт пустое поле из-за таймаута — и правило массово сработало на клиентах со знакомыми устройствами.",
+        "checks": [
+          "device_id не встречался у клиента за 90 дней — устройство действительно новое",
+          "device_id получен от fingerprint-service, а не подставлен fallback",
+          "пустой device_id не повышает риск, событие получает метку «дефект данных»"
+        ]
+      },
+      "current": [
+        { "text": "ЕСЛИ device_id не встречался у клиента за 90 дней", "change": "same" },
+        { "text": "   ИЛИ device_id пустой", "change": "removed" },
+        { "text": "ТО риск +35, обращение на проверку", "change": "same" }
+      ],
+      "proposed": [
+        { "text": "ЕСЛИ device_id не встречался у клиента за 90 дней", "change": "same" },
+        { "text": "   И device_id_source ≠ fallback", "change": "added" },
+        { "text": "ТО риск +35, обращение на проверку", "change": "same" },
+        { "text": "ЕСЛИ device_id пустой — не повышать риск, ставить метку «дефект данных»", "change": "added" }
+      ],
+      "basis": [
+        { "label": "Разбор данных", "text": "device_id обязателен по контракту web v1.8; пропуски массовые с 13:47" },
+        { "label": "RCA", "text": "таймаут оркестратора к fingerprint-service после релиза v3.12", "needsRca": true },
+        { "label": "Условия", "text": "таймаут 800 → 1 500 мс, retry, fallback device_hash", "needsRca": true }
+      ],
+      "effect": "Пустой device_id больше не превращается в «новое устройство» и не создаёт обращений",
+      "related": 37
+    },
+    "report": {
+      "period": "первые 6 часов после активации",
+      "activatedAt": "15:00",
+      "metrics": [
+        { "label": "Срабатываний правила в час", "before": "38", "after": "3" },
+        { "label": "Доля ложных срабатываний", "before": "92%", "after": "11%" },
+        { "label": "Пустых device_id в веб-канале", "before": "38%", "after": "0,6%" },
+        { "label": "Подтверждённый фрод, пойманный правилом", "before": "2", "after": "2", "note": "правило не ослабло" }
+      ],
+      "hourly": [
+        { "t": "09:00", "hits": 4 },
+        { "t": "10:00", "hits": 3 },
+        { "t": "11:00", "hits": 5 },
+        { "t": "12:00", "hits": 4 },
+        { "t": "13:00", "hits": 21 },
+        { "t": "14:00", "hits": 38 },
+        { "t": "15:00", "hits": 6 },
+        { "t": "16:00", "hits": 3 },
+        { "t": "17:00", "hits": 4 },
+        { "t": "18:00", "hits": 3 },
+        { "t": "19:00", "hits": 2 },
+        { "t": "20:00", "hits": 3 }
+      ],
+      "conclusion": "Правило вернулось к обычному уровню срабатываний, ложные обращения из-за пустого device_id ушли из очереди, а подтверждённый фрод правило ловит так же, как до правки."
+    }
+  }
+}

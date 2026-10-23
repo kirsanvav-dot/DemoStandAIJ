@@ -231,10 +231,10 @@ export function AnalysisScreen() {
                     <>
                       <button
                         type="button"
-                        onClick={() => go('rca')}
+                        onClick={() => go('chat')}
                         className="btn-aij rounded-xl px-7 py-4 text-[17px]"
                       >
-                        Найти первопричину (RCA)
+                        Спросить агента RCA в чате
                       </button>
                       <button
                         type="button"

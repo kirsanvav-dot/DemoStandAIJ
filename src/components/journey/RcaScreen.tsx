@@ -37,7 +37,7 @@ export function RcaScreen() {
       <JourneyHeader
         title="RCA · поиск первопричины"
         subtitle={`Почему не пришёл ${journey.attribute ?? 'атрибут'} · ${journey.eventId}`}
-        onBack={() => go('analysis')}
+        onBack={() => go('chat')}
         right={
           <div className="flex items-center gap-3">
             <AssistantAvatar size={36} thinking={!done} />

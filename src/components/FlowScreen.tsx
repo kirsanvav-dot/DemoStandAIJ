@@ -15,6 +15,7 @@ import {
   IconScale,
   IconShield,
 } from './Icons'
+import { FraudConveyor } from './Mascot'
 
 type RunState = PipelineEvent
 
@@ -291,7 +292,10 @@ export function FlowScreen() {
             ))}
           </div>
         </div>
-        <div className="mt-12 flex h-32 w-full max-w-[1400px] items-center justify-center">
+        <div className="mt-6 w-full max-w-[1400px]">
+          <FraudConveyor run={run} stageCount={stages.length} />
+        </div>
+        <div className="mt-6 flex h-32 w-full max-w-[1400px] items-center justify-center">
           <AnimatePresence mode="wait">
             {run.phase === 'alerting' && run.scenario ? (
               <AlertPill key={`alert-${run.cycle}`} scenario={run.scenario} />
