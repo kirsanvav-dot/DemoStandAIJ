@@ -34,4 +34,12 @@ export class RemoteDataProvider implements DataProvider {
   getLiveAnalysis() {
     return () => {}
   }
+
+  getCaseQueue() {
+    return []
+  }
+
+  getCase() {
+    return null
+  }
 }

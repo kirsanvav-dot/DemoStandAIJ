@@ -219,14 +219,14 @@ export const scenarios: Scenario[] = [
       detective: {
         status: 'unavailable',
         summary:
-          'Атрибут отсутствует с начала сессии. В ПКБ нет записей по этому device_id за последние 30 дней.',
-        detail: 'ПКБ: last_seen=never, fill_rate_24h=0%, missing_count=all, client_id=****0387',
+          'До 13:47 device_id приходил в 99,6% событий веб-канала, после — в 62%. Пропуски массовые и начались одномоментно.',
+        detail: 'ПКБ: channel=web, fill_rate_before=99.6%, fill_rate_after=62%, break=13:47, client_id=****0387',
       },
       analyst: {
         status: 'confirmed',
         summary:
-          'Атрибут подтверждённо отсутствует и не восстанавливается из истории. Вероятна проблема на стороне fingerprint SDK.',
-        detail: 'Синтез: contract=required, criticality=critical, history=no_records, verdict=escalate',
+          'Поле обязательное и критичное, пропуски массовые и начались резко. Это не поведение клиентов, а сбой в цепочке обработки — нужен поиск первопричины.',
+        detail: 'Синтез: contract=required, criticality=critical, history=mass_gap_since_13:47, verdict=root_cause',
       },
     },
     verdict: {
@@ -270,14 +270,14 @@ export const scenarios: Scenario[] = [
       detective: {
         status: 'recovered',
         summary:
-          'MCC стабильно приходил до 14:30. Последние 5 минут — 40% пропусков, совпадает с обновлением справочника.',
-        detail: 'ПКБ: last_seen=14:29:58, fill_rate_24h=97.8%, missing_window=5min, client_id=****1192',
+          'Около 6% операций эквайринга штатно приходят без MCC — доля стабильна 90 дней, всплесков нет. Категория мерчанта есть в его профиле.',
+        detail: 'ПКБ: fill_rate_90d=94.1%, trend=stable, merchant_profile.category=available, client_id=****1192',
       },
       analyst: {
         status: 'recovered',
         summary:
-          'Атрибут восстанавливается из истории. Пропуск связан с обновлением справочника мерчантов. Использовать fallback.',
-        detail: 'Синтез: contract=recommended, criticality=medium, history=transient_gap, verdict=use_fallback',
+          'Данные в порядке: MCC — опциональное поле, пропуск штатный. Ошибка в логике правила — оно считает отсутствие MCC признаком риска.',
+        detail: 'Синтез: contract=recommended, criticality=medium, history=stable_gap, verdict=fix_rule',
       },
     },
     verdict: {

@@ -5,6 +5,7 @@ import {
   scenarios,
   type Scenario,
 } from './scenarios'
+import { caseRows, findCase, type CaseId } from './journey'
 import type { DataProvider, PipelineEvent } from './provider'
 
 const STAGE_MS = 700
@@ -119,6 +120,14 @@ export class MockDataProvider implements DataProvider {
       window.clearTimeout(thinkTimer)
       if (tokenTimer !== null) window.clearInterval(tokenTimer)
     }
+  }
+
+  getCaseQueue() {
+    return caseRows
+  }
+
+  getCase(caseId: CaseId) {
+    return findCase(caseId)
   }
 
   private startLoop() {
