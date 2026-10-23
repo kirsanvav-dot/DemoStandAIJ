@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Готовая офлайн-сборка лежит в репозитории — Tailwind не должен искать в ней классы. */
+@source not "../dist-kiosk";
+
 @theme {
   --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;

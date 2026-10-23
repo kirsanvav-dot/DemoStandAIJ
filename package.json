@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "build:kiosk": "vite build --config vite.kiosk.config.ts"
+    "build:kiosk": "vite build --config vite.kiosk.config.ts && node -e \"require('fs').renameSync('dist-kiosk/index.html','dist-kiosk/antifraud-demo.html')\""
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.5",
