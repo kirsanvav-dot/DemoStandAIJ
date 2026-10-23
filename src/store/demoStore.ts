@@ -4,11 +4,22 @@ import type { CaseId } from '../data/journey'
 
 /**
  * pipeline — заставка-конвейер (idle на плазме)
- * arm — АРМ Обращений · analysis — разбор проблемы данных · rca — поиск первопричины
- * conditions — обновление условий · rule — АРМ Аналитика
+ * arm — АРМ Обращений · analysis — разбор проблемы данных · chat — запуск RCA из рабочего чата
+ * rca — поиск первопричины · conditions — обновление условий · rule — АРМ Аналитика
+ * report — отчёт об эффективности правила после активации
  * alerts / verdict — экраны первой версии демо, в полном цикле не используются
  */
-export type ScreenId = 'pipeline' | 'arm' | 'analysis' | 'rca' | 'conditions' | 'rule' | 'alerts' | 'verdict'
+export type ScreenId =
+  | 'pipeline'
+  | 'arm'
+  | 'analysis'
+  | 'chat'
+  | 'rca'
+  | 'conditions'
+  | 'rule'
+  | 'report'
+  | 'alerts'
+  | 'verdict'
 
 export type ClosedCase = { caseId: CaseId; related: number; ruleId: string }
 

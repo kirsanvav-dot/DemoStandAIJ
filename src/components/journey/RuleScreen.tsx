@@ -14,7 +14,6 @@ export function RuleScreen() {
   const visited = useDemoStore((state) => state.visited)
   const go = useDemoStore((state) => state.go)
   const setScreen = useDemoStore((state) => state.setScreen)
-  const closeCase = useDemoStore((state) => state.closeCase)
   const journey = caseId ? getDataProvider().getCase(caseId) : null
   const [applying, setApplying] = useState(false)
 
@@ -40,7 +39,7 @@ export function RuleScreen() {
 
   const approve = () => {
     setApplying(true)
-    window.setTimeout(() => closeCase({ caseId: journey.id, related: rule.related, ruleId: rule.id }), 1400)
+    window.setTimeout(() => go('report'), 1400)
   }
 
   return (
@@ -57,12 +56,30 @@ export function RuleScreen() {
           <p className={cx('min-h-[56px] text-[18px] leading-relaxed text-ink-50', !done && 'typing-caret')}>{shown}</p>
         </div>
 
+        <Reveal delay={0.1} className="grid grid-cols-[1fr_1fr] gap-5">
+          <div className="glass rounded-2xl border-bad/25 p-6">
+            <SectionLabel>почему сработало неверно</SectionLabel>
+            <p className="text-[17px] leading-relaxed text-ink-50">{rule.description.whyWrong}</p>
+          </div>
+          <div className="glass rounded-2xl border-aij-teal/30 p-6">
+            <SectionLabel>что правило проверяет теперь</SectionLabel>
+            <ol className="space-y-2">
+              {rule.description.checks.map((check, index) => (
+                <li key={check} className="flex gap-3 text-[17px] leading-relaxed text-ink-50">
+                  <span className="font-mono text-aij-teal">{index + 1}.</span>
+                  {check}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </Reveal>
+
         <div className="grid min-h-0 grid-cols-[1fr_1fr_0.85fr] gap-5">
-          <Reveal delay={0.2} className="glass rounded-2xl p-6">
+          <Reveal delay={0.4} className="glass rounded-2xl p-6">
             <SectionLabel>сейчас</SectionLabel>
             <RuleText lines={rule.current} />
           </Reveal>
-          <Reveal delay={0.5} className="glass rounded-2xl border-aij-teal/30 p-6">
+          <Reveal delay={0.6} className="glass rounded-2xl border-aij-teal/30 p-6">
             <SectionLabel>предлагает агент</SectionLabel>
             <RuleText lines={rule.proposed} />
           </Reveal>
@@ -105,7 +122,7 @@ export function RuleScreen() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-2 rounded-xl border border-ok/40 bg-ok/10 px-6 py-4 text-[17px] text-ok"
             >
-              <IconCheck className="h-5 w-5" /> Правило обновлено · возвращаемся в очередь
+              <IconCheck className="h-5 w-5" /> Правило активировано · собираем отчёт об эффективности
             </motion.p>
           ) : (
             <motion.div key="actions" className="flex items-center gap-3">
@@ -113,7 +130,7 @@ export function RuleScreen() {
                 Отложить
               </button>
               <button type="button" onClick={approve} className="btn-aij rounded-xl px-7 py-4 text-[17px]">
-                Утвердить и вернуться в АРМ Обращений
+                Утвердить и активировать
               </button>
             </motion.div>
           )}

@@ -3,8 +3,10 @@ import { AlertsScreen } from './components/AlertsScreen'
 import { AnalysisScreen } from './components/AnalysisScreen'
 import { FlowScreen } from './components/FlowScreen'
 import { ArmScreen } from './components/journey/ArmScreen'
+import { ChatScreen } from './components/journey/ChatScreen'
 import { ConditionsScreen } from './components/journey/ConditionsScreen'
 import { RcaScreen } from './components/journey/RcaScreen'
+import { ReportScreen } from './components/journey/ReportScreen'
 import { RuleScreen } from './components/journey/RuleScreen'
 import { VerdictScreen } from './components/VerdictScreen'
 import { useIdleReset } from './hooks/useIdleReset'
@@ -31,9 +33,11 @@ export default function App() {
           {screen === 'pipeline' && <FlowScreen />}
           {screen === 'arm' && <ArmScreen />}
           {screen === 'analysis' && <AnalysisScreen />}
+          {screen === 'chat' && <ChatScreen />}
           {screen === 'rca' && <RcaScreen />}
           {screen === 'conditions' && <ConditionsScreen />}
           {screen === 'rule' && <RuleScreen />}
+          {screen === 'report' && <ReportScreen />}
           {screen === 'alerts' && <AlertsScreen />}
           {screen === 'verdict' && <VerdictScreen />}
         </motion.div>

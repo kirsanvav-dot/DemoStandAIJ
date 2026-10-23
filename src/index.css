@@ -85,6 +85,17 @@ button {
   animation: dash-flow 0.8s linear infinite;
 }
 
+/* Конвейер операций на заставке: лента прокручивается бесконечно (содержимое продублировано). */
+@keyframes belt {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-belt {
+  animation: belt 40s linear infinite;
+}
+
 @keyframes pulse-soft {
   50% {
     opacity: 0.45;

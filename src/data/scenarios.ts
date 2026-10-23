@@ -1,5 +1,6 @@
 // TODO: заменить на live-фид событий — сценарии и выводы агентов сейчас записаны заранее.
 // На стенде итог Агента-Аналитика формирует GigaChat.
+import { happyPath } from './happyPath'
 
 export type ScenarioId =
   | 'geo_missing'
@@ -189,57 +190,8 @@ export const scenarios: Scenario[] = [
       riskLevel: 'medium',
     },
   },
-  {
-    id: 'device_missing',
-    title: 'Пропал идентификатор устройства',
-    attributeName: 'device_id (device fingerprint)',
-    source: 'Валидация контракта (L1) → Энричер «Устройство»',
-    brokenStage: 'validation',
-    downstream:
-      'Не строится профиль устройства. История операций по устройству недоступна, привязка к предыдущим событиям невозможна.',
-    channel: 'Веб-канал',
-    timestamp: '14:28:41',
-    severity: 3,
-    missingChip: 'device_id',
-    agentOutputs: {
-      expert: {
-        status: 'confirmed',
-        summary:
-          'Device_id обязателен по контракту web_channel v1.8. Без него невозможно сопоставить сессии.',
-        detail:
-          'DataContract: channel=web, version=1.8, field=device_id, constraint=required, source=fingerprint_sdk',
-      },
-      statistic: {
-        status: 'confirmed',
-        summary:
-          'Атрибут device_id связан с 6 зависимыми расчётами и 5 правилами. Критичность — критическая.',
-        detail:
-          'Справочник связей: device_id → device_profile, device_id → session_link, device_id → repeat_device_rule, device_id → velocity_by_device',
-      },
-      detective: {
-        status: 'unavailable',
-        summary:
-          'До 13:47 device_id приходил в 99,6% событий веб-канала, после — в 62%. Пропуски массовые и начались одномоментно.',
-        detail: 'ПКБ: channel=web, fill_rate_before=99.6%, fill_rate_after=62%, break=13:47, client_id=****0387',
-      },
-      analyst: {
-        status: 'confirmed',
-        summary:
-          'Поле обязательное и критичное, пропуски массовые и начались резко. Это не поведение клиентов, а сбой в цепочке обработки — нужен поиск первопричины.',
-        detail: 'Синтез: contract=required, criticality=critical, history=mass_gap_since_13:47, verdict=root_cause',
-      },
-    },
-    verdict: {
-      status: 'confirmed',
-      reason:
-        'Идентификатор устройства не передан клиентским SDK. Профиль устройства не может быть построен.',
-      technicalDetail:
-        'Fingerprint SDK не вернул device_id. Контракт web v1.8 требует device_id как required-поле на стадии L1.',
-      recommendation: 'Эскалировать в команду интеграции (fingerprint SDK)',
-      scoringImpact: 'Критический риск: 5 правил и 6 расчётов затронуты',
-      riskLevel: 'high',
-    },
-  },
+  // Сквозной кейс DEMO-204817 — из единого JSON (happy-path.json).
+  happyPath.scenario,
   {
     id: 'mcc_missing',
     title: 'Пропал код категории мерчанта (MCC)',
