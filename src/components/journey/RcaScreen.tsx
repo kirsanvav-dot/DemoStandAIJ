@@ -117,7 +117,7 @@ export function RcaScreen() {
           </ol>
         </div>
 
-        <div className="flex w-[640px] shrink-0 flex-col gap-4">
+        <div className="flex min-h-0 w-[640px] shrink-0 flex-col gap-4 overflow-auto *:shrink-0">
           <div className="glass rounded-2xl p-5">
             <SectionLabel>источники RCA-агента</SectionLabel>
             <div className="grid grid-cols-2 gap-2.5">
@@ -140,7 +140,7 @@ export function RcaScreen() {
             </div>
           </div>
 
-          <div className="glass flex-1 rounded-2xl p-5">
+          <div className="glass grow rounded-2xl p-5">
             <SectionLabel>fingerprint-service · время ответа p99</SectionLabel>
             {showChart ? (
               <LatencyChart data={rca.latency} timeoutMs={rca.timeoutMs} releaseAfter="13:40" />

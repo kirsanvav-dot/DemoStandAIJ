@@ -207,3 +207,31 @@ button {
   background: #3fe0c5;
   animation: caret 0.9s step-end infinite;
 }
+
+/* Сцена 1920×1080: на плазме масштаб 1, на ноутбуке и 4K вписывается целиком. */
+.stage-fit {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #03050b;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  flex: none;
+  overflow: hidden;
+  transform-origin: center center;
+}
+
+.stage .h-screen {
+  height: 1080px;
+}
+
+.stage .min-h-screen {
+  min-height: 1080px;
+}

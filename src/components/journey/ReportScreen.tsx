@@ -27,7 +27,7 @@ export function ReportScreen() {
         subtitle={`${rule.id} «${rule.name}» · ${report.period}`}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-8 py-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-8 py-6 *:shrink-0">
         <div className="glass flex items-start gap-4 rounded-2xl px-6 py-5">
           <AssistantAvatar size={44} thinking={!done} />
           <p className={cx('min-h-[56px] text-[18px] leading-relaxed text-ink-50', !done && 'typing-caret')}>{shown}</p>

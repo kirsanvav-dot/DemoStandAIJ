@@ -50,7 +50,7 @@ export function RuleScreen() {
         onBack={() => (back === 'arm' ? setScreen('arm') : go(back))}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-8 py-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-8 py-6 *:shrink-0">
         <div className="glass flex items-start gap-4 rounded-2xl px-6 py-5">
           <AssistantAvatar size={44} thinking={!done} />
           <p className={cx('min-h-[56px] text-[18px] leading-relaxed text-ink-50', !done && 'typing-caret')}>{shown}</p>
@@ -74,7 +74,7 @@ export function RuleScreen() {
           </div>
         </Reveal>
 
-        <div className="grid min-h-0 grid-cols-[1fr_1fr_0.85fr] gap-5">
+        <div className="grid grid-cols-[1fr_1fr_0.85fr] gap-5">
           <Reveal delay={0.4} className="glass rounded-2xl p-6">
             <SectionLabel>сейчас</SectionLabel>
             <RuleText lines={rule.current} />
