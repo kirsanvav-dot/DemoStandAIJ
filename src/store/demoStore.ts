@@ -5,8 +5,8 @@ import type { CaseId } from '../data/journey'
 /**
  * pipeline — заставка-конвейер (idle на плазме)
  * arm — АРМ Обращений · analysis — разбор проблемы данных · chat — запуск RCA из рабочего чата
- * rca — поиск первопричины · conditions — обновление условий · rule — АРМ Аналитика
- * report — отчёт об эффективности правила после активации
+ * rca — поиск первопричины · rule — АРМ Аналитика: описание правила
+ * report — АРМ Аналитика: отчёт об эффективности правила после активации
  * alerts / verdict — экраны первой версии демо, в полном цикле не используются
  */
 export type ScreenId =
@@ -15,7 +15,6 @@ export type ScreenId =
   | 'analysis'
   | 'chat'
   | 'rca'
-  | 'conditions'
   | 'rule'
   | 'report'
   | 'alerts'

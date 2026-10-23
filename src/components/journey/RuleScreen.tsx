@@ -7,7 +7,7 @@ import { useDemoStore, type ScreenId } from '../../store/demoStore'
 import { IconCheck } from '../Icons'
 import { AssistantAvatar, JourneyHeader, Reveal, SectionLabel, useTypewriter } from './Shell'
 
-const BACK_ORDER: ScreenId[] = ['conditions', 'analysis', 'arm']
+const BACK_ORDER: ScreenId[] = ['rca', 'analysis', 'arm']
 
 export function RuleScreen() {
   const caseId = useDemoStore((state) => state.caseId)
@@ -21,7 +21,7 @@ export function RuleScreen() {
   const intro = !journey
     ? ''
     : viaRca
-      ? 'Первопричину нашли и условия обработки обновили. Осталось поправить правило: оно считало пустой device_id новым устройством. Черновик описания — ниже.'
+      ? 'Первопричину нашли и передали владельцу модуля. Правило защищаем уже сейчас: оно считало пустой device_id новым устройством. Черновик описания — ниже.'
       : journey.analysis?.kind === 'needs_rca'
         ? 'Первопричину сбоя ещё ищем, но правило можно защитить уже сейчас: пустое поле не должно повышать риск. Черновик описания — ниже.'
         : journey.analysis

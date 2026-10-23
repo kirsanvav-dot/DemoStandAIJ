@@ -167,10 +167,10 @@ export function RcaScreen() {
             </div>
             <button
               type="button"
-              onClick={() => go('conditions')}
+              onClick={() => go('rule')}
               className="btn-aij flex shrink-0 items-center gap-2 rounded-xl px-7 py-4 text-[17px]"
             >
-              Обновить условия
+              Поправить правило
               <IconArrow className="h-5 w-5" />
             </button>
           </motion.div>

@@ -58,6 +58,6 @@ export interface DataProvider {
   getLiveAnalysis(alertId: string, onToken: (token: string) => void): () => void
   /** Очередь АРМ Обращений. */
   getCaseQueue(): CaseRow[]
-  /** Полный сценарий кейса: ассистент, разбор, RCA, условия, правило. */
+  /** Полный сценарий кейса: ассистент, разбор, RCA, правило, отчёт. */
   getCase(caseId: CaseId): JourneyCase | null
 }
