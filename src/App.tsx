@@ -4,7 +4,6 @@ import { AnalysisScreen } from './components/AnalysisScreen'
 import { FlowScreen } from './components/FlowScreen'
 import { ArmScreen } from './components/journey/ArmScreen'
 import { ChatScreen } from './components/journey/ChatScreen'
-import { ConditionsScreen } from './components/journey/ConditionsScreen'
 import { RcaScreen } from './components/journey/RcaScreen'
 import { ReportScreen } from './components/journey/ReportScreen'
 import { RuleScreen } from './components/journey/RuleScreen'
@@ -35,7 +34,6 @@ export default function App() {
           {screen === 'analysis' && <AnalysisScreen />}
           {screen === 'chat' && <ChatScreen />}
           {screen === 'rca' && <RcaScreen />}
-          {screen === 'conditions' && <ConditionsScreen />}
           {screen === 'rule' && <RuleScreen />}
           {screen === 'report' && <ReportScreen />}
           {screen === 'alerts' && <AlertsScreen />}

@@ -23,7 +23,7 @@ export function ReportScreen() {
   return (
     <div className="aij-bg flex h-screen flex-col">
       <JourneyHeader
-        title="Отчёт об эффективности правила"
+        title="АРМ Аналитика · эффективность правила"
         subtitle={`${rule.id} «${rule.name}» · ${report.period}`}
       />
 
@@ -33,7 +33,7 @@ export function ReportScreen() {
           <p className={cx('min-h-[56px] text-[18px] leading-relaxed text-ink-50', !done && 'typing-caret')}>{shown}</p>
         </div>
 
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid gap-5" style={{ gridTemplateColumns: `repeat(${report.metrics.length}, minmax(0, 1fr))` }}>
           {report.metrics.map((metric, index) => (
             <Reveal key={metric.label} delay={0.2 + index * 0.12} className="glass rounded-2xl p-5">
               <p className="min-h-[44px] text-[15px] leading-snug text-ink-300">{metric.label}</p>

@@ -1,4 +1,4 @@
-// Сценарий полного цикла: АРМ Обращений → разбор данных → чат → RCA → условия → АРМ Аналитика → отчёт.
+// Сценарий полного цикла: АРМ Обращений → разбор данных → RCA (чат и расследование) → АРМ Аналитика: правило → АРМ Аналитика: эффективность.
 // Все данные вымышленные (демо). Сквозной кейс DEMO-204817 лежит в happy-path.json,
 // здесь — фоновая очередь и два дополнительных кейса. TODO: заменить на ответы backend-оркестратора.
 import { happyPath } from './happyPath'
@@ -40,9 +40,7 @@ export type RcaStep = {
   chart?: boolean
 }
 
-export type ConditionChange = { key: string; from: string; to: string; why: string }
-
-/** Описание правила в кейс-менеджменте: почему сработало неверно и что правило проверяет теперь. */
+/** Описание правила в АРМ Аналитика: почему сработало неверно и что правило проверяет теперь. */
 export type RuleDescription = { whyWrong: string; checks: string[] }
 
 export type ReportMetric = { label: string; before: string; after: string; note?: string }
@@ -85,11 +83,6 @@ export type JourneyCase = {
     latency: Array<{ t: string; ms: number }>
     timeoutMs: number
     conclusion: string
-  } | null
-  conditions: {
-    changes: ConditionChange[]
-    forecast: string
-    note: string
   } | null
   rule: {
     id: string
@@ -233,7 +226,6 @@ export const journeyCases: JourneyCase[] = [
     },
     chat: null,
     rca: null,
-    conditions: null,
     rule: {
       id: 'DEMO_RULE_007',
       name: 'Категория повышенного риска',
@@ -304,7 +296,6 @@ export const journeyCases: JourneyCase[] = [
     analysis: null,
     chat: null,
     rca: null,
-    conditions: null,
     rule: {
       id: 'DEMO_RULE_021',
       name: 'Крупный перевод новому получателю',

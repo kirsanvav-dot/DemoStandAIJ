@@ -72,19 +72,9 @@
 | График задержки модуля | `journey.rca.latency[]` → `t` (ЧЧ:ММ), `ms`; `journey.rca.timeoutMs` |
 | Вывод | `journey.rca.conclusion` |
 
-**Отдаёт дальше:** первопричину для условий и оснований правила.
+**Отдаёт дальше:** первопричину для оснований правила.
 
-### 5. Обновление условий обработки
-
-| Вход | Поле |
-|---|---|
-| Изменения | `journey.conditions.changes[]` → `key` (параметр конфигурации), `from`, `to`, `why` |
-| Прогноз | `journey.conditions.forecast` |
-| Что дальше | `journey.conditions.note` |
-
-**Отдаёт дальше:** согласованные изменения (в демо — только флаг на экране).
-
-### 6. АРМ Аналитика · описание правила
+### 5. АРМ Аналитика · описание правила
 
 | Вход | Поле |
 |---|---|
@@ -96,7 +86,7 @@
 
 **Отдаёт дальше:** активированное правило `rule.id`.
 
-### 7. Отчёт об эффективности
+### 6. АРМ Аналитика · эффективность правила
 
 | Вход | Поле |
 |---|---|
@@ -117,12 +107,11 @@
 | АРМ Обращений | `journey/ArmScreen.tsx` | `queueRow`, `journey.assistant` | — |
 | Разбор данных (4 агента) | `AnalysisScreen.tsx` | `scenario.agentOutputs`, `journey.analysis` | Вика (качество данных) |
 | Чат и RCA | `journey/ChatScreen.tsx`, `journey/RcaScreen.tsx`, `LatencyChart.tsx` | `journey.chat`, `journey.rca` | Надя (RCA) |
-| Условия обработки | `journey/ConditionsScreen.tsx` | `journey.conditions` | — |
 | Правило и отчёт | `journey/RuleScreen.tsx`, `journey/ReportScreen.tsx`, `HitsChart.tsx` | `journey.rule`, `journey.report` | — |
 | Данные и провайдер | `src/data/*` | весь файл | — |
 
 ## Как подставить реальный инцидент
 
 1. Скопировать `happy-path.json` и заполнить поля по таблицам выше данными инцидента. Персональные данные, ИНН и названия клиентов заменить на вымышленные.
-2. Если у инцидента нет RCA, поставить `analysis.kind = "optional"`, а `chat`, `rca`, `conditions` — `null`. Основания с `needsRca` убрать.
+2. Если у инцидента нет RCA, поставить `analysis.kind = "optional"`, а `chat` и `rca` — `null`. Основания с `needsRca` убрать.
 3. Проверить `npm run build`, пройти цикл на `npm run dev`, пересобрать `npm run build:kiosk`.

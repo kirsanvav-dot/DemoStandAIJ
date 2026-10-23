@@ -8,11 +8,10 @@ import { IconBack, IconCheck } from '../Icons'
 const CYCLE: Array<{ id: ScreenId; label: string }> = [
   { id: 'arm', label: 'АРМ Обращений' },
   { id: 'analysis', label: 'Разбор данных' },
-  { id: 'chat', label: 'Чат' },
-  { id: 'rca', label: 'RCA' },
-  { id: 'conditions', label: 'Условия' },
-  { id: 'rule', label: 'АРМ Аналитика' },
-  { id: 'report', label: 'Отчёт' },
+  { id: 'chat', label: 'RCA · чат' },
+  { id: 'rca', label: 'RCA · первопричина' },
+  { id: 'rule', label: 'АРМ Аналитика · правило' },
+  { id: 'report', label: 'АРМ Аналитика · эффект' },
 ]
 
 /** Где мы в полном цикле: пройденные шаги, текущий, пропущенные. */
