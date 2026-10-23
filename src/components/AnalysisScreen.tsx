@@ -4,6 +4,7 @@ import { getDataProvider } from '../data'
 import type { AgentId, AgentOutput, AgentStatus } from '../data/scenarios'
 import { cx } from '../lib/cx'
 import { useDemoStore } from '../store/demoStore'
+import { AssistantAvatar, JourneyHeader } from './journey/Shell'
 import {
   IconBack,
   IconBars,
@@ -61,6 +62,9 @@ export function AnalysisScreen() {
   const selected = useDemoStore((state) => state.selected)
   const setScreen = useDemoStore((state) => state.setScreen)
   const markResolved = useDemoStore((state) => state.markResolved)
+  const caseId = useDemoStore((state) => state.caseId)
+  const go = useDemoStore((state) => state.go)
+  const journey = caseId ? getDataProvider().getCase(caseId) : null
   const [step, setStep] = useState(-1)
   const [openId, setOpenId] = useState<AgentId | null>(null)
   const [liveMode, setLiveMode] = useState(false)
@@ -115,68 +119,82 @@ export function AnalysisScreen() {
   const done = step >= AGENT_COUNT
 
   return (
-    <div className="radial-glow flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-ink-700/50 px-8 py-5">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setScreen('alerts')}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-600/40 bg-ink-800 transition-colors hover:bg-ink-700"
-          >
-            <IconBack className="h-4 w-4 text-ink-300" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-ink-50">Разбор алерта</h1>
-            <p className="font-mono text-xs text-ink-300">{investigation.title}</p>
+    <div className={cx('flex min-h-screen flex-col', journey ? 'aij-bg' : 'radial-glow')}>
+      {journey ? (
+        <JourneyHeader
+          title="Разбор проблемы данных"
+          subtitle={`${investigation.title} · ${journey.eventId}`}
+          onBack={() => setScreen('arm')}
+          right={
+            <div className="flex items-center gap-4">
+              <LiveToggle liveMode={liveMode} onToggle={() => setLiveMode((value) => !value)} />
+              <Stepper step={step} />
+            </div>
+          }
+        />
+      ) : (
+        <header className="flex items-center justify-between border-b border-ink-700/50 px-8 py-5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setScreen('alerts')}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-600/40 bg-ink-800 transition-colors hover:bg-ink-700"
+            >
+              <IconBack className="h-4 w-4 text-ink-300" />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-ink-50">Разбор алерта</h1>
+              <p className="font-mono text-xs text-ink-300">{investigation.title}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            aria-pressed={liveMode}
-            onClick={() => setLiveMode((value) => !value)}
-            className={cx(
-              'min-h-10 rounded-lg border px-3 font-mono text-xs transition-colors',
-              liveMode ? 'border-accent/50 bg-accent/15 text-accent' : 'border-ink-600/40 bg-ink-800 text-ink-300',
-            )}
-          >
-            Живой режим
-          </button>
-          <Stepper step={step} />
-        </div>
-      </header>
+          <div className="flex items-center gap-4">
+            <LiveToggle liveMode={liveMode} onToggle={() => setLiveMode((value) => !value)} />
+            <Stepper step={step} />
+          </div>
+        </header>
+      )}
 
       <div className="flex-1 overflow-auto px-8 py-6">
         <div className="relative mx-auto max-w-[1300px]">
-          <LinkLayer step={step} />
-          <div className="relative z-10 mb-12 flex justify-between px-[5%]">
-            {investigation.sources.map((source) => {
-              const agentIndex = source.id === 'data_contracts' ? 0 : source.id === 'attr_links' ? 1 : 2
-              const active = step === agentIndex
+          <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              ...investigation.sources,
+              { id: 'llm_synthesis', label: 'GigaChat · синтез', sublabel: 'Выводы агентов 1–3' },
+            ].map((source, index) => {
+              const active = step === index
+              const finished = step > index
               return (
-                <motion.div
-                  key={source.id}
-                  animate={{ scale: active ? 1.05 : 1, opacity: active ? 1 : 0.5 }}
-                  className="flex flex-col items-center gap-1.5"
-                >
-                  <div
-                    className={cx(
-                      'flex h-12 w-12 items-center justify-center rounded-xl border transition-colors',
-                      active
-                        ? 'border-accent/60 bg-accent/10 shadow-[0_0_20px_rgba(34,211,238,0.3)]'
-                        : 'border-ink-600/40 bg-ink-850/60',
-                    )}
+                <div key={source.id} className="flex flex-col items-center">
+                  <motion.div
+                    animate={{ scale: active ? 1.05 : 1, opacity: active || finished ? 1 : 0.5 }}
+                    className="flex flex-col items-center gap-1.5"
                   >
-                    <IconDb className={cx('h-5 w-5', active ? 'text-accent' : 'text-ink-400')} />
-                  </div>
-                  <p className={cx('font-mono text-xs', active ? 'text-accent' : 'text-ink-300')}>{source.label}</p>
-                  <p className="text-[10px] text-ink-400">{source.sublabel}</p>
-                </motion.div>
+                    <div
+                      className={cx(
+                        'flex h-12 w-12 items-center justify-center rounded-xl border transition-colors',
+                        active
+                          ? 'border-accent/60 bg-accent/10 shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                          : finished
+                            ? 'border-ok/30 bg-ok/5'
+                            : 'border-ink-600/40 bg-ink-850/60',
+                      )}
+                    >
+                      {index === 3 ? (
+                        <IconNodes className={cx('h-5 w-5', active ? 'text-accent' : finished ? 'text-ok' : 'text-ink-400')} />
+                      ) : (
+                        <IconDb className={cx('h-5 w-5', active ? 'text-accent' : finished ? 'text-ok' : 'text-ink-400')} />
+                      )}
+                    </div>
+                    <p className={cx('font-mono text-[13px]', active ? 'text-accent' : 'text-ink-200')}>{source.label}</p>
+                    <p className="text-[11px] text-ink-400">{source.sublabel}</p>
+                  </motion.div>
+                  <SourceLink active={active} finished={finished} />
+                </div>
               )
             })}
           </div>
 
-          <div className="relative z-10 mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {investigation.agents.map((agent, index) => (
               <AgentCard
                 key={agent.id}
@@ -196,7 +214,49 @@ export function AnalysisScreen() {
           </div>
 
           <AnimatePresence>
-            {done && (
+            {done && journey?.analysis && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass relative z-10 mt-8 flex items-center gap-6 rounded-2xl p-6"
+              >
+                <AssistantAvatar size={52} />
+                <div className="min-w-0 flex-1">
+                  <p className="mb-1 font-mono text-[12px] tracking-[0.12em] text-ink-400 uppercase">Итог разбора</p>
+                  <p className="text-xl font-semibold text-ink-50">{journey.analysis.headline}</p>
+                  <p className="mt-1.5 text-[15px] leading-relaxed text-ink-300">{journey.analysis.text}</p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-2.5">
+                  {journey.analysis.kind === 'needs_rca' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => go('rca')}
+                        className="btn-aij rounded-xl px-7 py-4 text-[17px]"
+                      >
+                        Найти первопричину (RCA)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => go('rule')}
+                        className="btn-ghost rounded-xl px-7 py-3 text-[15px]"
+                      >
+                        Сразу к правилу
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => go('rule')}
+                      className="btn-aij rounded-xl px-7 py-4 text-[17px]"
+                    >
+                      Скорректировать правило
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+            {done && !journey && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -222,39 +282,22 @@ export function AnalysisScreen() {
   )
 }
 
-function LinkLayer({ step }: { step: number }) {
-  const links = [
-    { active: step === 0, done: step > 0, x1: '16.5%', x2: '12.5%' },
-    { active: step === 1, done: step > 1, x1: '50%', x2: '37.5%' },
-    { active: step === 2, done: step > 2, x1: '83.5%', x2: '62.5%' },
-  ]
+/** Связь «источник → агент»: течёт, пока агент ходит в источник за данными. */
+function SourceLink({ active, finished }: { active: boolean; finished: boolean }) {
   return (
-    <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible">
-      {links.map((link) => (
-        <path
-          key={link.x1}
-          d={`M ${link.x1} 70 L ${link.x2} 150`}
-          fill="none"
-          stroke={link.active ? '#22d3ee' : link.done ? '#0a6b4f' : '#243352'}
-          strokeWidth="2"
-          strokeDasharray={link.active ? '6 4' : '0'}
-          className={link.active ? 'animate-dash-flow' : undefined}
-          opacity={link.active ? 0.9 : link.done ? 0.5 : 0.3}
-        />
-      ))}
-      {step >= 3 &&
-        [0, 1, 2].map((index) => (
-          <path
-            key={index}
-            d={`M ${12.5 + index * 25}% 210 Q 50% 180, 87.5% 210`}
-            fill="none"
-            stroke={step === 3 ? '#22d3ee' : '#0a6b4f'}
-            strokeWidth="2"
-            strokeDasharray={step === 3 ? '6 4' : '0'}
-            className={step === 3 ? 'animate-dash-flow' : undefined}
-            opacity={step === 3 ? 0.9 : 0.5}
-          />
-        ))}
+    <svg width="12" height="56" viewBox="0 0 12 56" className="my-1 overflow-visible" aria-hidden>
+      <line
+        x1="6"
+        y1="0"
+        x2="6"
+        y2="50"
+        stroke={active ? '#22d3ee' : finished ? '#34d399' : '#243352'}
+        strokeWidth="2"
+        strokeDasharray={active ? '6 4' : '0'}
+        className={active ? 'animate-dash-flow' : undefined}
+        opacity={active ? 1 : finished ? 0.6 : 0.5}
+      />
+      <path d="M1 48 L6 55 L11 48" fill="none" stroke={active ? '#22d3ee' : finished ? '#34d399' : '#243352'} strokeWidth="2" opacity={active ? 1 : finished ? 0.6 : 0.5} />
     </svg>
   )
 }
@@ -316,13 +359,13 @@ function AgentCard({
           )}
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-ink-100">{label}</h3>
+          <h3 className="text-base font-semibold text-ink-100">{label}</h3>
           <p className="font-mono text-[10px] text-ink-400">
             {streaming ? 'живой вызов ИИ' : `agent #${index + 1}`}
           </p>
         </div>
       </div>
-      <p className="mb-3 min-h-8 text-xs leading-relaxed text-ink-300">{description}</p>
+      <p className="mb-3 min-h-10 text-sm leading-relaxed text-ink-300">{description}</p>
       <AnimatePresence>
         {visible && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden">
@@ -331,7 +374,7 @@ function AgentCard({
                 {tone.label}
               </span>
             )}
-            <p className="text-xs leading-relaxed text-ink-100">
+            <p className="text-[15px] leading-relaxed text-ink-100">
               {shownText}
               {streaming && <span className="ml-0.5 inline-block h-3 w-1.5 translate-y-0.5 animate-pulse bg-accent" />}
             </p>
@@ -359,5 +402,21 @@ function AgentCard({
         </div>
       )}
     </motion.article>
+  )
+}
+
+function LiveToggle({ liveMode, onToggle }: { liveMode: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={liveMode}
+      onClick={onToggle}
+      className={cx(
+        'min-h-10 rounded-lg border px-3 font-mono text-xs transition-colors',
+        liveMode ? 'border-accent/50 bg-accent/15 text-accent' : 'border-ink-600/40 bg-ink-800 text-ink-300',
+      )}
+    >
+      Живой режим
+    </button>
   )
 }

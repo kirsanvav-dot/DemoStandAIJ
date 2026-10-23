@@ -201,7 +201,7 @@ function AlertPill({ scenario }: { scenario: Scenario }) {
       animate={{ opacity: 1, scale: 1, x: 0 }}
       exit={{ opacity: 0, scale: 0.6, x: 200 }}
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      onClick={() => setScreen('alerts')}
+      onClick={() => setScreen('arm')}
       className="flex items-center gap-4 rounded-xl border border-bad/50 bg-bad/10 px-6 py-4 text-left transition-colors hover:bg-bad/20"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bad/20">
@@ -214,7 +214,7 @@ function AlertPill({ scenario }: { scenario: Scenario }) {
         </p>
       </div>
       <div className="ml-4 flex items-center gap-1 font-mono text-xs text-bad">
-        <span>перейти к алертам</span>
+        <span>разобрать в АРМ</span>
         <IconArrow className="h-3 w-3" />
       </div>
     </motion.button>
@@ -265,11 +265,11 @@ export function FlowScreen() {
           </div>
           <button
             type="button"
-            onClick={() => setScreen('alerts')}
-            className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
+            onClick={() => setScreen('arm')}
+            className="btn-aij flex items-center gap-2 rounded-xl px-6 py-3 text-base"
           >
-            <IconAlert className="h-4 w-4" />
-            Смотреть алерты
+            Открыть АРМ Обращений
+            <IconArrow className="h-4 w-4" />
           </button>
         </div>
       </header>

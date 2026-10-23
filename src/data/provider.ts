@@ -1,3 +1,4 @@
+import type { CaseId, CaseRow, JourneyCase } from './journey'
 import type { AgentId, AgentOutput, Scenario, ScenarioId, StageDef, StageId } from './scenarios'
 
 export type DataProviderKind = 'mock' | 'remote'
@@ -55,4 +56,8 @@ export interface DataProvider {
    * Мок эмулирует токены заранее записанного текста.
    */
   getLiveAnalysis(alertId: string, onToken: (token: string) => void): () => void
+  /** Очередь АРМ Обращений. */
+  getCaseQueue(): CaseRow[]
+  /** Полный сценарий кейса: ассистент, разбор, RCA, условия, правило. */
+  getCase(caseId: CaseId): JourneyCase | null
 }
